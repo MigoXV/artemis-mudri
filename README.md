@@ -142,6 +142,20 @@ viewer 默认连接 `tcp://127.0.0.1:5555`，服务端示例命令也只监听�
 
 客户端可在 `StartEpisodeRequest` 中传入控制周期和初始位姿；未指定时按 20ms 控制 tick 与路线默认起点运行。
 
+## 事件协议
+
+服务端只把路径 checkpoint 等训练事实写入新版事件流。客户端应从每帧
+`ObservationFrame.step_trace.events` 读取当前 step 新触发的事件，并从
+`EpisodeFinished.summary.events` 读取完整 episode 事件日志。
+
+事件使用半结构化 `SimulationEvent` 表达：路径 checkpoint 的
+`namespace` 为 `path`，`type` 为 `checkpoint`，`severity` 为
+`EVENT_SEVERITY_INFO`。路径事件名称放在 `labels["name"]`，事件发生时间和路径索引分别放在
+`metrics["timestamp_s"]` 与 `metrics["path_index"]`。
+
+为保持本轮不修改 proto，`PathProgressFrame.completed_event_count` 和
+`PathProgressFrame.completed_events` 字段仍存在于协议定义中，但服务端已停止填充，客户端不应再读取这些旧兼容字段。
+
 ### 噪声配置
 
 仓库提供三档噪声配置：

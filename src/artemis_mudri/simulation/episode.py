@@ -50,7 +50,7 @@ class SimulationObservation:
     progress_index: int
     progress_m: float
     remaining_distance_m: float
-    completed_events: tuple[SimulationEvent, ...]
+    step_events: tuple[SimulationEvent, ...]
     reached_goal: bool
 
 
@@ -163,7 +163,7 @@ class DifferentialSimulation:
         self.progress_index = int(np.clip(initial_progress_index, 0, len(self.route.path.points) - 1))
         self.cross_track_errors: list[float] = []
         self.logged_events: list[SimulationEvent] = []
-        self._record_completed_events()
+        self._last_step_events: tuple[SimulationEvent, ...] = ()
         self._rear_left_speed = 0.0
         self._rear_right_speed = 0.0
         self._rear_left_total_pulses = 0.0
@@ -185,7 +185,7 @@ class DifferentialSimulation:
             )
         )
         self._update_metrics(self.current_state().position)
-        self._record_completed_events()
+        self._last_step_events = self._record_completed_events()
         self._update_sensor_leds((0,) * len(self._led_site_ids), dt=0.0)
 
     def open_viewer(self) -> None:
@@ -305,7 +305,7 @@ class DifferentialSimulation:
             progress_index=self.progress_index,
             progress_m=float(self.route.path.arc_length[self.progress_index]),
             remaining_distance_m=self.route.path.remaining_distance(self.progress_index),
-            completed_events=tuple(self.logged_events),
+            step_events=self._last_step_events,
             reached_goal=self.reached_goal,
         )
 
@@ -342,7 +342,7 @@ class DifferentialSimulation:
         self._integrate_planar(linear_speed=linear_speed, yaw_rate=yaw_rate, dt=step_dt)
         self.sequence_id += 1
         self._update_metrics(self.current_state().position)
-        self._record_completed_events()
+        self._last_step_events = self._record_completed_events()
         return self.observe()
 
     def summary(self) -> SimulationSummary:
@@ -585,22 +585,33 @@ class DifferentialSimulation:
         signed_error = float(np.dot(position - nearest_point, left_normal))
         self.cross_track_errors.append(signed_error)
 
-    def _record_completed_events(self) -> None:
+    def _record_completed_events(self) -> tuple[SimulationEvent, ...]:
         """按路径进度记录已完成的路径事件。"""
 
-        completed_names = {event.name for event in self.logged_events}
+        completed_names = {event.labels["name"] for event in self.logged_events}
+        new_events: list[SimulationEvent] = []
         for event in self.route.path.events:
             if event.name in completed_names:
                 continue
             if self.progress_index < event.index:
                 break
-            self.logged_events.append(
-                SimulationEvent(
-                    name=event.name,
-                    timestamp_s=float(self.data.time),
-                    path_index=event.index,
-                )
+            state = self.current_state()
+            simulation_event = SimulationEvent(
+                event_id=len(self.logged_events) + 1,
+                step_id=self.sequence_id,
+                namespace="path",
+                type="checkpoint",
+                severity="info",
+                pose=(state.x, state.y, state.yaw),
+                metrics={
+                    "timestamp_s": float(self.data.time),
+                    "path_index": float(event.index),
+                },
+                labels={"name": event.name},
             )
+            self.logged_events.append(simulation_event)
+            new_events.append(simulation_event)
+        return tuple(new_events)
 
     def _update_sensor_leds(self, digital_values: tuple[int, ...], dt: float) -> None:
         """根据数字量传感器结果更新带延迟的 LED 亮度。"""

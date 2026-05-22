@@ -7,10 +7,16 @@ from typing import Any
 
 @dataclass(frozen=True)
 class SimulationEvent:
-    """仿真过程中记录的关键事件。"""
-    name: str
-    timestamp_s: float
-    path_index: int
+    """仿真过程中记录的半结构化事件。"""
+
+    event_id: int
+    step_id: int
+    namespace: str
+    type: str
+    severity: str
+    pose: tuple[float, float, float]
+    metrics: dict[str, float]
+    labels: dict[str, str]
 
 
 @dataclass(frozen=True)
@@ -36,9 +42,14 @@ class SimulationSummary:
             "final_pose": self.final_pose,
             "events": [
                 {
-                    "name": event.name,
-                    "timestamp_s": event.timestamp_s,
-                    "path_index": event.path_index,
+                    "event_id": event.event_id,
+                    "step_id": event.step_id,
+                    "namespace": event.namespace,
+                    "type": event.type,
+                    "severity": event.severity,
+                    "pose": event.pose,
+                    "metrics": event.metrics,
+                    "labels": event.labels,
                 }
                 for event in self.events
             ],

@@ -10,6 +10,7 @@ import grpc
 from artemis_mudri.simulation import (
     DifferentialSimulation,
     MotorDriverConfig,
+    SimulationEvent,
     SimulationObservation,
     SimulationSummary,
 )
@@ -134,6 +135,9 @@ class VehicleSimulationService(pb2_grpc.VehicleSimulationServiceServicer):
                 )
                 self._publish_viewer_state(episode)
 
+                if episode.reached_goal:
+                    reason = "goal_reached"
+                    break
                 if episode.data.time >= time_budget_s:
                     reason = "time_limit"
                     break
@@ -221,8 +225,6 @@ def _observation_message(observation: SimulationObservation) -> pb2.ServerMessag
         ),
         path_progress=observation_pb2.PathProgressFrame(
             active_segment_index=observation.active_segment_index,
-            completed_event_count=len(observation.completed_events),
-            completed_events=[event.name for event in observation.completed_events],
             reached_goal=observation.reached_goal,
             progress_index=observation.progress_index,
             progress_m=observation.progress_m,
@@ -242,6 +244,7 @@ def _observation_message(observation: SimulationObservation) -> pb2.ServerMessag
         ),
         step_trace=observation_pb2.StepTrace(
             step_id=observation.sequence_id,
+            events=[_event_message(event) for event in observation.step_events],
         ),
         pose=common_pb2.Pose2D(
             x_m=state.x,
@@ -268,22 +271,36 @@ def _finished_message(summary: SimulationSummary, reason: str) -> pb2.ServerMess
                     y_m=final_y,
                     yaw_rad=final_yaw,
                 ),
-                events=[
-                    event_pb2.SimulationEvent(
-                        name=event.name,
-                        timestamp_s=event.timestamp_s,
-                        path_index=event.path_index,
-                        namespace="path",
-                        type="checkpoint",
-                        severity=event_pb2.EVENT_SEVERITY_INFO,
-                    )
-                    for event in summary.events
-                ],
+                events=[_event_message(event) for event in summary.events],
                 total_steps=summary.total_steps,
             ),
             reason=reason,
-            final_step_trace=observation_pb2.StepTrace(reason=reason),
+            final_step_trace=observation_pb2.StepTrace(
+                step_id=summary.total_steps,
+                terminated=reason == "goal_reached",
+                truncated=reason != "goal_reached",
+                reason=reason,
+            ),
         )
+    )
+
+
+def _event_message(event: SimulationEvent) -> event_pb2.SimulationEvent:
+    severity_by_name = {
+        "info": event_pb2.EVENT_SEVERITY_INFO,
+        "warning": event_pb2.EVENT_SEVERITY_WARNING,
+        "failure": event_pb2.EVENT_SEVERITY_FAILURE,
+    }
+    x_m, y_m, yaw_rad = event.pose
+    return event_pb2.SimulationEvent(
+        event_id=event.event_id,
+        step_id=event.step_id,
+        namespace=event.namespace,
+        type=event.type,
+        severity=severity_by_name.get(event.severity, event_pb2.EVENT_SEVERITY_UNSPECIFIED),
+        pose=common_pb2.Pose2D(x_m=x_m, y_m=y_m, yaw_rad=yaw_rad),
+        metrics=event.metrics,
+        labels=event.labels,
     )
 
 

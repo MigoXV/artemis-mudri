@@ -7,6 +7,7 @@ from artemis_mudri.servicer.servicer import VehicleSimulationService
 from artemis_mudri.simulation.noise import load_noise_config
 from artemis_mudri.track import build_default_route
 from artemis_mudri.protos.simulation.v1 import common_pb2
+from artemis_mudri.protos.simulation.v1 import event_pb2
 from artemis_mudri.protos.simulation.v1 import vehicle_simulation_pb2 as pb2
 
 
@@ -129,8 +130,45 @@ class VehicleSimulationServiceTest(unittest.TestCase):
         responses = list(service.StreamEpisode(requests, None))
 
         observation = responses[1].observation
-        self.assertEqual(observation.path_progress.completed_event_count, 1)
-        self.assertEqual(list(observation.path_progress.completed_events), ["C"])
+        self.assertEqual(observation.path_progress.completed_event_count, 0)
+        self.assertEqual(list(observation.path_progress.completed_events), [])
+        self.assertEqual(len(observation.step_trace.events), 1)
+
+        event = observation.step_trace.events[0]
+        self.assertEqual(event.name, "")
+        self.assertEqual(event.timestamp_s, 0.0)
+        self.assertEqual(event.path_index, 0)
+        self.assertEqual(event.event_id, 1)
+        self.assertEqual(event.step_id, observation.step_trace.step_id)
+        self.assertEqual(event.namespace, "path")
+        self.assertEqual(event.type, "checkpoint")
+        self.assertEqual(event.severity, event_pb2.EVENT_SEVERITY_INFO)
+        self.assertEqual(event.labels["name"], "C")
+        self.assertEqual(event.metrics["path_index"], float(route.path.events[0].index))
+        self.assertIn("timestamp_s", event.metrics)
+
+        summary_event = responses[-1].finished.summary.events[0]
+        self.assertEqual(summary_event.event_id, event.event_id)
+        self.assertEqual(summary_event.namespace, "path")
+        self.assertEqual(summary_event.type, "checkpoint")
+        self.assertEqual(summary_event.labels["name"], "C")
+
+    def test_stream_episode_final_step_trace_reports_truncation_reason(self) -> None:
+        service = VehicleSimulationService()
+        requests = iter(
+            [
+                pb2.ClientMessage(start=pb2.StartEpisodeRequest(control_period_s=0.01)),
+                pb2.ClientMessage(stop=pb2.StopEpisodeRequest(reason="test_stop")),
+            ]
+        )
+
+        finished = list(service.StreamEpisode(requests, None))[-1].finished
+
+        self.assertEqual(finished.reason, "test_stop")
+        self.assertEqual(finished.final_step_trace.reason, "test_stop")
+        self.assertFalse(finished.final_step_trace.terminated)
+        self.assertTrue(finished.final_step_trace.truncated)
+        self.assertEqual(finished.final_step_trace.step_id, finished.summary.total_steps)
 
     def test_stream_episode_motor_command_advances_time(self) -> None:
         service = VehicleSimulationService()
