@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from xml.sax.saxutils import escape
 
-from artemis_mudri.track import ANCHORS, ARC_LINE_WIDTH_M, FIELD_HEIGHT_M, FIELD_WIDTH_M, OFFICIAL_ARCS
+from artemis_mudri.track import ANCHORS, ARC_LINE_WIDTH_M, FIELD_HEIGHT_M, FIELD_WIDTH_M, OFFICIAL_ARCS, OFFICIAL_LINES
 from artemis_mudri.track import RoutePlan
 from artemis_mudri.simulation.config import BoundaryConfig, SiteConfig, WorldConfig
 from artemis_mudri.simulation.xml_common import format_floats, site_xml
@@ -70,13 +70,13 @@ def build_track_worldbody_xml(route: RoutePlan, world: WorldConfig, resolution: 
     boundaries = "\n    ".join(_boundary_xml(boundary) for boundary in world.boundaries)
     official_track = "\n    ".join(
         _capsule_chain_xml(
-            arc.name,
-            arc.sample(resolution),
+            segment.name,
+            segment.sample(resolution),
             radius=0.5 * ARC_LINE_WIDTH_M,
             rgba=world.track_rgba,
             z=world.track_z,
         )
-        for arc in OFFICIAL_ARCS
+        for segment in (*OFFICIAL_LINES, *OFFICIAL_ARCS)
     )
     reference_route = _capsule_chain_xml(
         "reference_route",

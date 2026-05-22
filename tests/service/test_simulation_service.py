@@ -143,7 +143,7 @@ class VehicleSimulationServiceTest(unittest.TestCase):
         self.assertEqual(event.namespace, "path")
         self.assertEqual(event.type, "checkpoint")
         self.assertEqual(event.severity, event_pb2.EVENT_SEVERITY_INFO)
-        self.assertEqual(event.labels["name"], "C")
+        self.assertEqual(event.labels["name"], route.path.events[0].name)
         self.assertEqual(event.metrics["path_index"], float(route.path.events[0].index))
         self.assertIn("timestamp_s", event.metrics)
 
@@ -151,7 +151,7 @@ class VehicleSimulationServiceTest(unittest.TestCase):
         self.assertEqual(summary_event.event_id, event.event_id)
         self.assertEqual(summary_event.namespace, "path")
         self.assertEqual(summary_event.type, "checkpoint")
-        self.assertEqual(summary_event.labels["name"], "C")
+        self.assertEqual(summary_event.labels["name"], route.path.events[0].name)
 
     def test_stream_episode_final_step_trace_reports_truncation_reason(self) -> None:
         service = VehicleSimulationService()

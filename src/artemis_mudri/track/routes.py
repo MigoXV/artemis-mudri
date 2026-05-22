@@ -26,9 +26,9 @@ class RoutePlan:
 DEFAULT_ROUTE_DEFINITION: dict[str, Any] = {
     "time_limit_s": 120.0,
     "path_segments": (
-        {"event_name": "C", "type": "line", "start_anchor": "A", "end_anchor": "C"},
-        {"event_name": "B", "type": "arc", "center": "right_center", "start_angle_deg": -90.0, "end_angle_deg": 90.0},
-        {"event_name": "D", "type": "line", "start_anchor": "B", "end_anchor": "D"},
+        {"event_name": "B", "type": "line", "start_anchor": "A", "end_anchor": "B"},
+        {"event_name": "C", "type": "arc", "center": "right_center", "start_angle_deg": 90.0, "end_angle_deg": -90.0},
+        {"event_name": "D", "type": "line", "start_anchor": "C", "end_anchor": "D"},
         {"event_name": "A", "type": "arc", "center": "left_center", "start_angle_deg": -90.0, "end_angle_deg": -270.0},
     ),
 }

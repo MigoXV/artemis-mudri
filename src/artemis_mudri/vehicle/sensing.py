@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import numpy as np
 from numpy.typing import NDArray
 
-from artemis_mudri.track import ARC_LINE_WIDTH_M, OFFICIAL_ARCS
+from artemis_mudri.track import ARC_LINE_WIDTH_M, OFFICIAL_ARCS, OFFICIAL_LINES
 
 
 @dataclass(frozen=True)
@@ -67,8 +67,8 @@ class LineSensorArray:
         """计算某一点落在线上的“黑度”。"""
         max_darkness = 0.0
         support_radius = self.config.line_half_width_m + self.config.line_softness_m
-        for arc in OFFICIAL_ARCS:
-            distance = arc.centerline_distance(point)
+        for segment in (*OFFICIAL_LINES, *OFFICIAL_ARCS):
+            distance = segment.centerline_distance(point)
             if distance >= support_radius:
                 continue
             darkness = max(0.0, 1.0 - distance / support_radius)

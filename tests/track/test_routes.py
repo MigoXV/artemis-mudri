@@ -13,13 +13,13 @@ class RoutePlanTest(unittest.TestCase):
 
     def test_default_route_path_length_matches_expected_segments(self) -> None:
         route = build_default_route()
-        expected = math.hypot(1.0, -0.8) + math.pi * 0.4 + math.hypot(-1.0, -0.8) + math.pi * 0.4
+        expected = 1.0 + math.pi * 0.4 + 1.0 + math.pi * 0.4
         self.assertAlmostEqual(route.path.total_length, expected, delta=0.03)
 
     def test_default_route_event_order_matches_statement(self) -> None:
         route = build_default_route()
         event_names = [event.name for event in route.path.events]
-        self.assertEqual(event_names, ["C", "B", "D", "A"])
+        self.assertEqual(event_names, ["B", "C", "D", "A"])
 
 
 if __name__ == "__main__":
