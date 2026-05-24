@@ -84,20 +84,6 @@ export function drawVehicle(
   ctx.stroke();
   ctx.shadowColor = "transparent";
 
-  ctx.strokeStyle = "#f8fafc";
-  ctx.lineWidth = Math.max(1.4, scale * 0.004);
-  ctx.beginPath();
-  ctx.moveTo(left + corner * 1.2, top + corner * 0.8);
-  ctx.lineTo(right - noseInset * 1.6, top + corner * 0.8);
-  ctx.lineTo(right - noseInset * 0.75, top + width * 0.26);
-  ctx.lineTo(right - noseInset * 0.75, bottom - width * 0.26);
-  ctx.lineTo(right - noseInset * 1.6, bottom - corner * 0.8);
-  ctx.lineTo(left + corner * 1.2, bottom - corner * 0.8);
-  ctx.quadraticCurveTo(left + corner * 0.2, bottom - corner * 0.8, left + corner * 0.2, bottom - corner * 1.7);
-  ctx.lineTo(left + corner * 0.2, top + corner * 1.7);
-  ctx.quadraticCurveTo(left + corner * 0.2, top + corner * 0.8, left + corner * 1.2, top + corner * 0.8);
-  ctx.stroke();
-
   ctx.fillStyle = "#f8fafc";
   const screwRadius = Math.max(1.5, 0.018 * width);
   for (const screw of [
@@ -134,21 +120,35 @@ export function drawVehicle(
 
 export function drawVehicleSensors(
   ctx: CanvasRenderingContext2D,
-  sensorPositions: Point[],
+  pose: Pose,
+  sensorLocalPositions: Point[],
   darkness: number[],
-  project: ProjectPoint
+  project: ProjectPoint,
+  scale: number
 ) {
-  for (const [index, sensor] of sensorPositions.entries()) {
+  const cosYaw = Math.cos(pose.yawRad);
+  const sinYaw = Math.sin(pose.yawRad);
+  const visualForwardOffsetM = VEHICLE_LENGTH_M * 0.32;
+  const radius = Math.max(1.4, Math.min(2.1, scale * 0.0048));
+
+  for (const [index, sensor] of sensorLocalPositions.entries()) {
     const value = Math.max(0, Math.min(1, darkness[index] ?? 0));
-    const screen = project(sensor);
-    const radius = 2.2 + value * 1.6;
-    const channel = Math.round(176 + value * 79);
+    const visualLocal = {
+      x: Math.min(sensor.x, visualForwardOffsetM),
+      y: sensor.y
+    };
+    const world = {
+      x: pose.xM + visualLocal.x * cosYaw - visualLocal.y * sinYaw,
+      y: pose.yM + visualLocal.x * sinYaw + visualLocal.y * cosYaw
+    };
+    const screen = project(world);
+    const channel = Math.round(168 + value * 87);
     ctx.beginPath();
     ctx.arc(screen.x, screen.y, radius, 0, Math.PI * 2);
     ctx.fillStyle = `rgb(${channel}, ${channel}, ${channel})`;
     ctx.fill();
     ctx.strokeStyle = value > 0.55 ? "#ffffff" : "#8c949e";
-    ctx.lineWidth = value > 0.55 ? 1.4 : 0.8;
+    ctx.lineWidth = value > 0.55 ? 1.1 : 0.7;
     ctx.stroke();
   }
 }

@@ -95,7 +95,14 @@ export function SimulationCanvas({ config, observation, history }: SimulationCan
 
     if (observation) {
       drawVehicle(ctx, observation.pose, project, scale);
-      drawVehicleSensors(ctx, observation.sensorWorldPositions, observation.lineSensorDarkness, project);
+      drawVehicleSensors(
+        ctx,
+        observation.pose,
+        config.vehicle.sensorLocalPositions,
+        observation.lineSensorDarkness,
+        project,
+        scale
+      );
     }
   }, [config, observation, history]);
 
