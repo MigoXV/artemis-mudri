@@ -48,7 +48,15 @@ export type ClientMessage =
       type: "stop";
     };
 
-export type ServerMessage = {
-  type: "observation";
-  observation: ObservationSnapshot;
-};
+export type RuntimeStatus = "starting" | "running" | "finished" | "error";
+
+export type ServerMessage =
+  | {
+      type: "observation";
+      observation: ObservationSnapshot;
+    }
+  | {
+      type: "status";
+      status: RuntimeStatus;
+      reason?: string;
+    };
