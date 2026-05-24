@@ -10,6 +10,10 @@ class LineSensorArrayTest(unittest.TestCase):
     def test_darkness_at_arc_centerline_is_high(self) -> None:
         self.assertGreater(self.sensor_array.darkness_at(self._point(1.6, 1.0)), 0.6)
 
+    def test_darkness_at_straight_connector_is_zero(self) -> None:
+        self.assertEqual(self.sensor_array.darkness_at(self._point(1.1, 1.0)), 0.0)
+        self.assertEqual(self.sensor_array.darkness_at(self._point(1.1, 0.2)), 0.0)
+
     def test_darkness_away_from_track_is_zero(self) -> None:
         self.assertEqual(self.sensor_array.darkness_at(self._point(1.1, 0.6)), 0.0)
 

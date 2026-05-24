@@ -112,18 +112,7 @@ OFFICIAL_ARCS = (
     ),
 )
 
-OFFICIAL_LINES = (
-    ArenaLine(
-        name="top_line",
-        start=ANCHORS["A"],
-        end=ANCHORS["B"],
-    ),
-    ArenaLine(
-        name="bottom_line",
-        start=ANCHORS["D"],
-        end=ANCHORS["C"],
-    ),
-)
+OFFICIAL_LINES: tuple[ArenaLine, ...] = ()
 
 
 def anchor(name: str) -> FloatArray:
