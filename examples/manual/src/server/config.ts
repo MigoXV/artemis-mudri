@@ -40,7 +40,7 @@ export function runtimeConfig(): RuntimeConfig {
     maxSpeed: envNumber("ARTEMIS_MANUAL_MAX_SPEED", 20),
     accel: envNumber("ARTEMIS_MANUAL_ACCEL", 80),
     controlPeriodS: envNumber("ARTEMIS_MANUAL_CONTROL_PERIOD", 0.02),
-    maxTimeS: envNumber("ARTEMIS_MANUAL_MAX_TIME", 120),
+    maxTimeS: envNumber("ARTEMIS_MANUAL_MAX_TIME", 2400),
     leftKey: (process.env.ARTEMIS_MANUAL_LEFT_KEY ?? "j").trim().toLowerCase(),
     rightKey: (process.env.ARTEMIS_MANUAL_RIGHT_KEY ?? "l").trim().toLowerCase()
   };
