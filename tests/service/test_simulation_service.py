@@ -170,6 +170,42 @@ class VehicleSimulationServiceTest(unittest.TestCase):
         self.assertTrue(finished.final_step_trace.truncated)
         self.assertEqual(finished.final_step_trace.step_id, finished.summary.total_steps)
 
+    def test_stream_episode_does_not_finish_when_goal_is_reached(self) -> None:
+        service = VehicleSimulationService()
+        route = build_default_route()
+        initial_progress_index = len(route.path.points) - 1
+        point = route.path.points[initial_progress_index]
+        yaw = route.path.headings[initial_progress_index]
+        requests = iter(
+            [
+                pb2.ClientMessage(
+                    start=pb2.StartEpisodeRequest(
+                        control_period_s=0.01,
+                        initial_pose=common_pb2.Pose2D(x_m=float(point[0]), y_m=float(point[1]), yaw_rad=float(yaw)),
+                        initial_progress_index=initial_progress_index,
+                    )
+                ),
+                pb2.ClientMessage(
+                    control_command=pb2.VehicleControlCommand(
+                        sequence_id=0,
+                        rear_left_target_speed=0.0,
+                        rear_right_target_speed=0.0,
+                    )
+                ),
+                pb2.ClientMessage(stop=pb2.StopEpisodeRequest(reason="client_goal_stop")),
+            ]
+        )
+
+        responses = list(service.StreamEpisode(requests, None))
+
+        self.assertEqual([response.WhichOneof("payload") for response in responses], ["started", "observation", "observation", "finished"])
+        self.assertTrue(responses[1].observation.path_progress.reached_goal)
+        self.assertTrue(responses[2].observation.path_progress.reached_goal)
+        self.assertEqual(responses[-1].finished.reason, "client_goal_stop")
+        self.assertTrue(responses[-1].finished.summary.reached_goal)
+        self.assertFalse(responses[-1].finished.final_step_trace.terminated)
+        self.assertTrue(responses[-1].finished.final_step_trace.truncated)
+
     def test_stream_episode_motor_command_advances_time(self) -> None:
         service = VehicleSimulationService()
         requests = iter(

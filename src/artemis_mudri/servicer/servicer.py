@@ -135,9 +135,6 @@ class VehicleSimulationService(pb2_grpc.VehicleSimulationServiceServicer):
                 )
                 self._publish_viewer_state(episode)
 
-                if episode.reached_goal:
-                    reason = "goal_reached"
-                    break
                 if episode.data.time >= time_budget_s:
                     reason = "time_limit"
                     break
@@ -277,8 +274,8 @@ def _finished_message(summary: SimulationSummary, reason: str) -> pb2.ServerMess
             reason=reason,
             final_step_trace=observation_pb2.StepTrace(
                 step_id=summary.total_steps,
-                terminated=reason == "goal_reached",
-                truncated=reason != "goal_reached",
+                terminated=False,
+                truncated=True,
                 reason=reason,
             ),
         )
