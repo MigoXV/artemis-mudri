@@ -1,4 +1,4 @@
-import type { Point } from "./types";
+import type { Point } from "../geometry/types";
 
 export const FIELD_WIDTH_M = 2.2;
 export const FIELD_HEIGHT_M = 1.2;
@@ -17,17 +17,6 @@ const CENTERS: Record<string, Point> = {
   left_center: { x: 0.6, y: 0.6 },
   right_center: { x: 1.6, y: 0.6 }
 };
-
-export const SENSOR_LOCAL_POSITIONS: Point[] = [
-  { x: 0.085, y: 0.04 },
-  { x: 0.085, y: 0.03 },
-  { x: 0.085, y: 0.02 },
-  { x: 0.085, y: 0.01 },
-  { x: 0.085, y: -0.01 },
-  { x: 0.085, y: -0.02 },
-  { x: 0.085, y: -0.03 },
-  { x: 0.085, y: -0.04 }
-];
 
 function distance(start: Point, end: Point) {
   return Math.hypot(end.x - start.x, end.y - start.y);

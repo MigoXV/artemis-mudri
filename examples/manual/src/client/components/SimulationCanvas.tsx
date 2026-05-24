@@ -1,15 +1,15 @@
 import { useEffect, useRef } from "react";
-import type { ManualConfig, ObservationPayload, Point, Pose } from "../shared/types";
+import type { Point } from "../../geometry/types";
+import type { ManualConfig, ObservationSnapshot } from "../../protocol/types";
+import { drawVehicle, drawVehicleSensors } from "../../vehicle/canvas";
 
-type RobotCanvasProps = {
+type SimulationCanvasProps = {
   config: ManualConfig;
-  observation: ObservationPayload | null;
+  observation: ObservationSnapshot | null;
   history: Point[];
 };
 
 const FIELD_PADDING_PX = 36;
-const CAR_LENGTH_M = 0.18;
-const CAR_WIDTH_M = 0.11;
 
 function drawPolyline(
   ctx: CanvasRenderingContext2D,
@@ -33,56 +33,7 @@ function drawPolyline(
   ctx.stroke();
 }
 
-function drawRobot(
-  ctx: CanvasRenderingContext2D,
-  pose: Pose,
-  sensorPositions: Point[],
-  darkness: number[],
-  project: (point: Point) => Point,
-  scale: number
-) {
-  const center = project({ x: pose.x_m, y: pose.y_m });
-  ctx.save();
-  ctx.translate(center.x, center.y);
-  ctx.rotate(-pose.yaw_rad);
-
-  ctx.fillStyle = "#ffffff";
-  ctx.strokeStyle = "#17202a";
-  ctx.lineWidth = 2;
-  ctx.beginPath();
-  ctx.roundRect(
-    -0.5 * CAR_LENGTH_M * scale,
-    -0.5 * CAR_WIDTH_M * scale,
-    CAR_LENGTH_M * scale,
-    CAR_WIDTH_M * scale,
-    8
-  );
-  ctx.fill();
-  ctx.stroke();
-
-  ctx.fillStyle = "#d9480f";
-  ctx.beginPath();
-  ctx.moveTo(0.5 * CAR_LENGTH_M * scale + 10, 0);
-  ctx.lineTo(0.5 * CAR_LENGTH_M * scale - 8, -8);
-  ctx.lineTo(0.5 * CAR_LENGTH_M * scale - 8, 8);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-
-  for (const [index, sensor] of sensorPositions.entries()) {
-    const value = Math.max(0, Math.min(1, darkness[index] ?? 0));
-    const screen = project(sensor);
-    ctx.beginPath();
-    ctx.arc(screen.x, screen.y, 4 + value * 6, 0, Math.PI * 2);
-    ctx.fillStyle = `rgba(31, 122, 92, ${0.25 + value * 0.75})`;
-    ctx.fill();
-    ctx.strokeStyle = "#145840";
-    ctx.lineWidth = 1;
-    ctx.stroke();
-  }
-}
-
-export default function RobotCanvas({ config, observation, history }: RobotCanvasProps) {
+export function SimulationCanvas({ config, observation, history }: SimulationCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
@@ -143,14 +94,8 @@ export default function RobotCanvas({ config, observation, history }: RobotCanva
     }
 
     if (observation) {
-      drawRobot(
-        ctx,
-        observation.pose,
-        observation.sensor_world_positions,
-        observation.line_sensor_darkness,
-        project,
-        scale
-      );
+      drawVehicle(ctx, observation.pose, project, scale);
+      drawVehicleSensors(ctx, observation.sensorWorldPositions, observation.lineSensorDarkness, project);
     }
   }, [config, observation, history]);
 
