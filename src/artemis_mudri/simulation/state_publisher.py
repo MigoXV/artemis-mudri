@@ -23,11 +23,21 @@ class SimulationStatePublisher(Protocol):
 def build_state_message(simulation: DifferentialSimulation) -> dict[str, Any]:
     """构造可通过网络发送的一帧 MuJoCo 状态。"""
 
+    state = simulation.current_state()
     return {
         "time": float(simulation.data.time),
-        "qpos": simulation.data.qpos.copy(),
-        "qvel": simulation.data.qvel.copy(),
+        "qpos": simulation.data.qpos.tolist(),
+        "qvel": simulation.data.qvel.tolist(),
         "sequence_id": int(simulation.sequence_id),
+        "pose": {
+            "x_m": float(state.x),
+            "y_m": float(state.y),
+            "yaw_rad": float(state.yaw),
+        },
+        "kinematics": {
+            "longitudinal_velocity_m_s": float(state.longitudinal_speed),
+            "yaw_rate_rad_s": float(state.yaw_rate),
+        },
     }
 
 
@@ -61,7 +71,7 @@ class ZmqSimulationStatePublisher:
                 self.start()
             if self._socket is None:
                 raise RuntimeError("MuJoCo state publisher socket is not initialized")
-            self._socket.send_pyobj(build_state_message(simulation))
+            self._socket.send_json(build_state_message(simulation))
 
     def close(self) -> None:
         """关闭 PUB socket。"""

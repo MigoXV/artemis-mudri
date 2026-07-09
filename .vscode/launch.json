@@ -9,7 +9,6 @@
             "console": "integratedTerminal",
             "justMyCode": true,
             "envFile": "${workspaceFolder}/.env",
-            "args": ["serve"]
         }
     ]
 }

@@ -161,7 +161,6 @@ async function runEpisodeLoop(
   }
 
   callbacks.onStatus?.("running");
-  publishObservation(started.observation, clients, callbacks);
 
   let sequenceId = started.observation.sequence_id;
   while (!stopFlag.stop && !isClosed()) {
@@ -201,7 +200,6 @@ async function runEpisodeLoop(
       return;
     }
     sequenceId = response.observation.sequence_id;
-    publishObservation(response.observation, clients, callbacks);
   }
 
   const response = await sendRequest(socket, { type: "stop", reason: closeReason() });

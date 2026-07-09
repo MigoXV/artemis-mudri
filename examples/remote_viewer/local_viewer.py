@@ -63,7 +63,7 @@ def run_viewer(*, connect: str, idle_hz: float) -> None:
             simulation._configure_viewer(viewer)
             while viewer.is_running():
                 try:
-                    message = socket.recv_pyobj(flags=zmq.NOBLOCK)
+                    message = socket.recv_json(flags=zmq.NOBLOCK)
                 except zmq.Again:
                     time.sleep(idle_interval_s)
                     continue

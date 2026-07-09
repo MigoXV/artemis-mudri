@@ -10,6 +10,7 @@ export function buildFrontendConfig(config: RuntimeConfig): ManualConfig {
     leftKey: config.leftKey,
     rightKey: config.rightKey,
     wsUrl: `ws://${config.webHost}:${config.webPort}/ws`,
+    viewerStateConnect: config.viewerStateConnect,
     scene: {
       field: {
         widthM: FIELD_WIDTH_M,
