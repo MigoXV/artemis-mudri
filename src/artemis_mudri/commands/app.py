@@ -26,11 +26,6 @@ app = typer.Typer(
 )
 
 
-@app.callback()
-def root() -> None:
-    """自动行驶小车仿真服务。"""
-
-
 def create_simulation_service(
     *,
     bind: str = "tcp://127.0.0.1:5556",

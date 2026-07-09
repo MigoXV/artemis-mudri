@@ -7,6 +7,7 @@ import { mapObservation, startZmqEpisodeLoopWithFactory } from "./zmqBridge";
 
 const config: RuntimeConfig = {
   target: "tcp://127.0.0.1:5556",
+  viewerStateConnect: "tcp://127.0.0.1:5555",
   webHost: "127.0.0.1",
   webPort: 8765,
   maxSpeed: 20,
@@ -141,7 +142,7 @@ describe("ZMQ manual bridge", () => {
     await waitUntil(() => statuses.includes("finished:time_limit"));
 
     assert.equal(JSON.stringify(statuses), JSON.stringify(["running", "finished:time_limit"]));
-    assert.equal(JSON.stringify(observations), JSON.stringify([0, 1]));
+    assert.equal(JSON.stringify(observations), JSON.stringify([]));
     assert.equal(socket.target, config.target);
     assert.deepEqual(socket.requests.map((request) => request.type), ["start", "step", "step"]);
     assert.equal(socket.requests[1].rear_left_target_speed, 0.08);

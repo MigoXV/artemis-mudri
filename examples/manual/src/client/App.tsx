@@ -32,9 +32,10 @@ function commandLabel(controlPressed: { left: boolean; right: boolean }) {
 }
 
 function runtimeLabel(runtimeStatus: RuntimeStatus) {
+  if (runtimeStatus === "idle") return "监视中";
   if (runtimeStatus === "starting") return "正在连接";
-  if (runtimeStatus === "running") return "仿真运行中";
-  if (runtimeStatus === "finished") return "仿真已结束";
+  if (runtimeStatus === "running") return "手动控制中";
+  if (runtimeStatus === "finished") return "手动控制已结束";
   return "数据异常";
 }
 
@@ -52,7 +53,7 @@ export default function App() {
   const { config, status, setStatus } = useManualConfig();
   const [observation, setObservation] = useState<ObservationSnapshot | null>(null);
   const [history, setHistory] = useState<Point[]>([]);
-  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>("starting");
+  const [runtimeStatus, setRuntimeStatus] = useState<RuntimeStatus>("idle");
   const [simulationEventLog, setSimulationEventLog] = useState<SimulationEventLogEntry[]>([]);
   const [activityLog, setActivityLog] = useState<ActivityLogEntry[]>(() => [{
     id: Date.now(),
@@ -103,22 +104,26 @@ export default function App() {
 
   const handleRuntimeStatus = useCallback((runtimeStatus: RuntimeStatus, reason?: string) => {
     setRuntimeStatus(runtimeStatus);
+    if (runtimeStatus === "idle") {
+      setStatus(reason ? `手动控制已释放：${reason}。继续订阅状态流。` : "正在订阅状态流；按控制键接管手动控制。");
+      return;
+    }
     if (runtimeStatus === "starting") {
       setObservation(null);
       setHistory([]);
       setSimulationEventLog([]);
-      setStatus("正在启动新的仿真 episode...");
+      setStatus("正在接管手动控制并启动新的仿真 episode...");
       return;
     }
     if (runtimeStatus === "running") {
-      setStatus("仿真运行中，按住控制键或按钮控制小车。");
+      setStatus("手动控制中，按住控制键或按钮控制小车。");
       return;
     }
     if (runtimeStatus === "finished") {
-      setStatus(`仿真已结束：${reason ?? "finished"}。刷新页面可重新开始。`);
+      setStatus(`手动控制已结束：${reason ?? "finished"}。按控制键可重新接管。`);
       return;
     }
-    setStatus(`仿真错误：${reason ?? "unknown_error"}。刷新页面可重新开始。`);
+    setStatus(`数据或控制连接错误：${reason ?? "unknown_error"}。`);
   }, [setStatus]);
 
   const { sendControl, requestStop } = useManualSocket({
@@ -128,10 +133,10 @@ export default function App() {
     onStatus: setStatus,
     onActivity: appendActivity
   });
-  const isRunning = runtimeStatus === "running";
+  const canControl = runtimeStatus === "idle" || runtimeStatus === "running" || runtimeStatus === "finished";
   const { controlPressed, feedback, setPressedKey, targets } = useDriveInput({
     config,
-    enabled: isRunning,
+    enabled: canControl,
     onActivity: appendActivity,
     requestStop,
     sendControl
@@ -188,8 +193,8 @@ export default function App() {
       <DriveControls
         config={config}
         controlPressed={controlPressed}
-        disabled={!isRunning}
-        disabledReason={isRunning ? undefined : runtimeLabel(runtimeStatus)}
+        disabled={!canControl}
+        disabledReason={canControl ? undefined : runtimeLabel(runtimeStatus)}
         requestStop={requestStop}
         setPressedKey={setPressedKey}
         targets={targets}

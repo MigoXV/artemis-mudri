@@ -19,7 +19,6 @@ export function createManualWebSocketServer(
 
   wss.on("connection", (socket) => {
     runtime.addClient(socket);
-    runtime.restart();
     runtime.sendCurrentSnapshot(socket);
     socket.on("message", (rawMessage) => {
       const message = JSON.parse(String(rawMessage)) as ClientMessage;

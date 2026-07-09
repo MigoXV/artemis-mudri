@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import sys
 import unittest
 from pathlib import Path
@@ -37,10 +38,15 @@ class RemoteViewerExamplesTest(unittest.TestCase):
 
         message = build_state_message(simulation)
 
-        self.assertEqual(set(message), {"time", "qpos", "qvel", "sequence_id"})
+        json.dumps(message)
+        self.assertEqual(set(message), {"time", "qpos", "qvel", "sequence_id", "pose", "kinematics"})
+        self.assertIsInstance(message["qpos"], list)
+        self.assertIsInstance(message["qvel"], list)
         self.assertEqual(len(message["qpos"]), simulation.model.nq)
         self.assertEqual(len(message["qvel"]), simulation.model.nv)
         self.assertEqual(message["sequence_id"], simulation.sequence_id)
+        self.assertEqual(set(message["pose"]), {"x_m", "y_m", "yaw_rad"})
+        self.assertEqual(set(message["kinematics"]), {"longitudinal_velocity_m_s", "yaw_rate_rad_s"})
 
     def test_apply_state_message_rejects_wrong_vector_lengths(self) -> None:
         simulation = DEFAULT_SIMULATION_PRESET.build_simulation()

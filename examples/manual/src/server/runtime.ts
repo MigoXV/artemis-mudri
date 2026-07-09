@@ -2,6 +2,7 @@ import type { WebSocket } from "ws";
 import type { ObservationSnapshot, RuntimeStatus, ServerMessage } from "../protocol/types";
 import type { RuntimeConfig } from "./config";
 import { resetControlState, type ControlState, type EpisodeRuntimeSnapshot, type StopFlag } from "./state";
+import { startViewerStateLoop } from "./viewerStateBridge";
 import { startZmqEpisodeLoop } from "./zmqBridge";
 
 type ActiveLoop = {
@@ -21,6 +22,15 @@ export type StartEpisodeLoop = (
   callbacks: LoopCallbacks
 ) => ActiveLoop;
 
+export type StartViewerStateLoop = (
+  config: RuntimeConfig,
+  clients: Set<WebSocket>,
+  callbacks: {
+    onObservation?: (observation: ObservationSnapshot) => void;
+    onError?: (reason: string) => void;
+  }
+) => ActiveLoop;
+
 export class EpisodeRuntime {
   readonly clients = new Set<WebSocket>();
   readonly state: ControlState = {
@@ -32,14 +42,16 @@ export class EpisodeRuntime {
 
   private stopFlag: StopFlag = { stop: false };
   private activeLoop: ActiveLoop | null = null;
-  private status: RuntimeStatus = "finished";
-  private reason: string | undefined = "not_started";
+  private stateLoop: ActiveLoop | null = null;
+  private status: RuntimeStatus = "idle";
+  private reason: string | undefined;
   private lastObservation: ObservationSnapshot | null = null;
   private runId = 0;
 
   constructor(
     private readonly config: RuntimeConfig,
-    private readonly startLoop: StartEpisodeLoop = startZmqEpisodeLoop
+    private readonly startLoop: StartEpisodeLoop = startZmqEpisodeLoop,
+    private readonly startStateLoop: StartViewerStateLoop = startViewerStateLoop
   ) {}
 
   snapshot(): EpisodeRuntimeSnapshot {
@@ -52,6 +64,18 @@ export class EpisodeRuntime {
 
   removeClient(client: WebSocket) {
     this.clients.delete(client);
+  }
+
+  startViewerStateStream() {
+    if (this.stateLoop !== null) return;
+    this.stateLoop = this.startStateLoop(this.config, this.clients, {
+      onObservation: (observation) => {
+        this.lastObservation = observation;
+      },
+      onError: (reason) => {
+        this.setStatus("error", reason);
+      }
+    });
   }
 
   restart() {
@@ -80,18 +104,23 @@ export class EpisodeRuntime {
 
   stop(reason = "manual_stop") {
     resetControlState(this.state);
-    if (this.status === "finished" || this.status === "error") {
+    if (this.activeLoop === null) {
       this.broadcastStatus();
       return;
     }
+    this.runId += 1;
     this.stopFlag.stop = true;
     this.activeLoop?.close(reason);
     this.activeLoop = null;
-    this.setStatus("finished", reason);
+    this.setStatus("idle", reason);
   }
 
   applyControl(leftPressed: boolean, rightPressed: boolean) {
-    if (this.status === "finished" || this.status === "error") {
+    const wantsControl = leftPressed || rightPressed;
+    if (wantsControl && this.activeLoop === null && this.status !== "starting" && this.status !== "running") {
+      this.restart();
+    }
+    if (this.status === "finished" || this.status === "error" || this.status === "idle") {
       this.broadcastStatus();
       return;
     }

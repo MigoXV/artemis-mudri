@@ -6,6 +6,7 @@ export type ManualConfig = {
   leftKey: string;
   rightKey: string;
   wsUrl: string;
+  viewerStateConnect: string;
   scene: {
     field: {
       widthM: number;
@@ -60,7 +61,7 @@ export type ClientMessage =
       type: "stop";
     };
 
-export type RuntimeStatus = "starting" | "running" | "finished" | "error";
+export type RuntimeStatus = "idle" | "starting" | "running" | "finished" | "error";
 
 export type ServerMessage =
   | {

@@ -38,13 +38,16 @@ poetry install
 启动 ZMQ JSON 仿真服务：
 
 ```bash
-poetry run python -m artemis_mudri.commands.app serve --bind tcp://127.0.0.1:5556 --no-render
+poetry run python -m artemis_mudri.commands.app \
+  --bind tcp://0.0.0.0:5556 \
+  --viewer-state-bind tcp://0.0.0.0:5555 \
+  --no-render
 ```
 
 如果需要启用现实噪声，可以通过 YAML 配置启动：
 
 ```bash
-poetry run python -m artemis_mudri.commands.app serve \
+poetry run python -m artemis_mudri.commands.app \
   --bind tcp://127.0.0.1:5556 \
   --noise-config examples/configs/noise/weak.yaml
 ```
@@ -157,7 +160,10 @@ print(socket.recv_json())
 先启动主仿真服务：
 
 ```bash
-poetry run python -m artemis_mudri.commands.app serve --bind tcp://127.0.0.1:5556 --no-render
+poetry run python -m artemis_mudri.commands.app serve \
+  --bind tcp://0.0.0.0:5556 \
+  --viewer-state-bind tcp://0.0.0.0:5555 \
+  --no-render
 ```
 
 再启动手动控制台：
@@ -168,7 +174,7 @@ pnpm install
 pnpm dev
 ```
 
-默认后端连接 `tcp://127.0.0.1:5556`，可通过 `ARTEMIS_MANUAL_TARGET` 指向其它 ZMQ 服务地址。浏览器控制台默认使用 `J` / `L` 控制左右轮，`Q` 或 `Escape` 请求停止。
+默认后端控制连接 `tcp://127.0.0.1:5556`，可通过 `ARTEMIS_MANUAL_TARGET` 指向其它 ZMQ 服务地址。画面状态默认订阅 `tcp://127.0.0.1:5555`，可通过 `ARTEMIS_MANUAL_VIEWER_STATE_CONNECT` 指向 `--viewer-state-bind` 的 PUB 地址。浏览器控制台默认使用 `J` / `L` 控制左右轮，`Q` 或 `Escape` 请求停止。
 
 ## 远程状态可视化 Demo
 

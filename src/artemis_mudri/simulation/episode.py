@@ -2,6 +2,7 @@ from __future__ import annotations
 """MuJoCo episode：负责模拟后双驱小车观测与运动学。"""
 
 import time
+from collections.abc import Sequence
 from contextlib import AbstractContextManager
 from dataclasses import dataclass, field
 from typing import Any
@@ -289,7 +290,7 @@ class DifferentialSimulation:
 
         state = self.current_state()
         line_sensor = self._line_sensor_reading(state)
-        self._update_sensor_leds(line_sensor.digital_values, dt=self.timestep_s)
+        self._update_sensor_leds(line_sensor.darkness, dt=self.timestep_s)
         mujoco.mj_forward(self.model, self.data)
         self.sync_viewer()
         return SimulationObservation(
@@ -613,14 +614,14 @@ class DifferentialSimulation:
             new_events.append(simulation_event)
         return tuple(new_events)
 
-    def _update_sensor_leds(self, digital_values: tuple[int, ...], dt: float) -> None:
-        """根据数字量传感器结果更新带延迟的 LED 亮度。"""
+    def _update_sensor_leds(self, sensor_values: Sequence[float], dt: float) -> None:
+        """根据灰度传感器结果更新带延迟的 LED 亮度。"""
 
-        for index, (site_id, value) in enumerate(zip(self._led_site_ids, digital_values)):
+        for index, (site_id, value) in enumerate(zip(self._led_site_ids, sensor_values)):
             if site_id < 0:
                 continue
-            target = 1.0 if value else 0.0
-            delay_s = self._led_on_delay_s if value else self._led_off_delay_s
+            target = float(np.clip(value, 0.0, 1.0))
+            delay_s = self._led_on_delay_s if target > self._led_brightness[index] else self._led_off_delay_s
             alpha = 1.0 if delay_s <= 0.0 else min(1.0, dt / delay_s)
             self._led_brightness[index] = float(
                 self._led_brightness[index] + (target - self._led_brightness[index]) * alpha
